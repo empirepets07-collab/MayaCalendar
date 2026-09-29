@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17130f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Maya Calendar Clock</title>
+<style>
+*{box-sizing:border-box}
+:root{color-scheme:dark}
+body{margin:0;background:#17130f;color:#f5ead8;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.app{max-width:760px;margin:auto;padding:14px 12px 30px}
+header{text-align:center;padding:8px 0 12px}
+h1{font-size:1.35rem;margin:0 0 5px}
+.sub{color:#c8b9a3;font-size:.82rem;line-height:1.45}
+.card{background:#211b15;border:1px solid #4a3b2b;border-radius:18px;padding:14px;margin:10px 0}
+.clock{display:flex;justify-content:center;align-items:center}
+svg{width:min(100%,520px);height:auto;display:block}
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.read{background:#191511;border:1px solid #4a3b2b;border-radius:12px;padding:10px}
+.label{font-size:.68rem;color:#b9a991;text-transform:uppercase;letter-spacing:.06em}
+.value{font-size:1rem;font-weight:750;margin-top:4px}
+.note{font-size:.76rem;color:#b9a991;margin-top:3px;line-height:1.4}
+.controls{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:8px;margin-top:10px}
+button,input{font:inherit}
+button{min-height:46px;border:1px solid #5b4935;border-radius:12px;background:#2a2119;color:#f5ead8;padding:8px;cursor:pointer}
+button.primary{background:#7b5a2c;border-color:#b68a45}
+button:active{transform:scale(.98)}
+.date{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+input[type=date]{min-height:46px;flex:1;min-width:150px;background:#191511;color:#f5ead8;border:1px solid #5b4935;border-radius:12px;padding:8px}
+.signs{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:420px;overflow:auto;margin-top:10px}
+.sign{display:flex;align-items:center;gap:8px;background:#191511;border:1px solid #4a3b2b;border-radius:10px;padding:8px;min-height:52px}
+.sign.active{border-color:#c0924c;background:#302318}
+.icon{font-size:1.35rem;width:30px;text-align:center}
+.sign small{color:#b9a991}
+.speed{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.speed button{min-height:40px;padding:6px 11px}
+.speed .sel{background:#7b5a2c;border-color:#b68a45}
+@media(max-width:520px){.readouts{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}.controls button:nth-child(2){grid-column:1/-1;grid-row:1}.signs{grid-template-columns:1fr 1fr}}
+@media(max-width:360px){.signs{grid-template-columns:1fr}.app{padding-left:8px;padding-right:8px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>🌞 Maya Calendar Clock</h1>
+<div class="sub">A touch-friendly educational model of the Tzolk’in, Haab’, Calendar Round and Long Count.</div>
+</header>
+
+<section class="card">
+<div class="clock"><svg id="dial" viewBox="0 0 520 520" aria-label="Maya calendar clock"></svg></div>
+
+<div class="readouts">
+<div class="read"><div class="label">Tzolk’in</div><div id="tz" class="value"></div><div id="tzNote" class="note"></div></div>
+<div class="read"><div class="label">Haab’</div><div id="haab" class="value"></div><div id="haabNote" class="note"></div></div>
+<div class="read"><div class="label">Calendar Round</div><div id="round" class="value"></div><div class="note">The same pairing repeats every 18,980 days (~52 solar years).</div></div>
+<div class="read"><div class="label">Long Count</div><div id="long" class="value"></div><div class="note">k’in 1 day · uinal 20 · tun 360 · katun 7,200 · baktun 144,000</div></div>
+</div>
+
+<div class="controls">
+<button id="prev">◀ 1 day</button>
+<button id="play" class="primary">▶ PLAY</button>
+<button id="next">1 day ▶</button>
+</div>
+<div class="speed">
+<span class="sub">Speed:</span>
+<button data-speed="1500">Slow</button>
+<button data-speed="700" class="sel">Normal</button>
+<button data-speed="180">Fast</button>
+</div>
+<div class="date">
+<input id="date" type="date">
+<button id="jump">SHOW DATE</button>
+<button id="today">TODAY</button>
+</div>
+</section>
+
+<section class="card">
+<div style="font-weight:750">20 Tzolk’in Day Signs</div>
+<div class="sub">Tap a sign to move to its next occurrence. Animal symbols are shown only where supported by the documented tradition; the signs are not all animals.</div>
+<div id="signs" class="signs"></div>
+</section>
+
+<section class="card">
+<div style="font-weight:750">How the clock moves</div>
+<div class="note">
+Every tap of “1 day” advances both calendars by one day. The Tzolk’in cycles through 13 numbers and 20 day signs (260 combinations). The Haab’ has 18 periods of 20 days plus 5 Wayeb’ days (365 total). Together they form the Calendar Round.
+</div>
+</section>
+</div>
+
+<script>
+const signs=[
+["Imix’","Imox","💧","water / sea / lake"],
+["Ik’","Iq’","💨","wind / air / spirit"],
+["Ak’b’al","Aq’ab’al","🌅","dawn / night"],
+["K’an","K’at","🌽","seed / maize"],
+["Chikchan","Kan","🐍","serpent"],
+["Kimi","Kame","⚰️","death"],
+["Manik’","Kej","🦌","deer"],
+["Lamat","Q’anil","✦","Venus / star"],
+["Muluk","Toj","💧","water / offering"],
+["Ok","Tz’i’","🐕","dog"],
+["Chuwen","B’atz’","🐒","monkey / thread tradition"],
+["Eb’","E","🛤️","road / path"],
+["B’en","Aj","🌾","reed / maize stalk"],
+["Ix","I’x","🐆","jaguar"],
+["Men","Tz’ikin","🐦","bird"],
+["K’ib’","Ajmaq","🕊️","will / forgiveness tradition"],
+["Kab’an","No’j","🌍","earth / wisdom"],
+["Etz’nab’","Tijax","🪨","flint / obsidian knife"],
+["Kawak","Kawoq","⛈️","storm / thunder"],
+["Ajaw","Ajpu’","☀️","lord / sacred authority"]
+];
+const haab=["Pop","Wo’","Sip","Sotz’","Sek","Xul","Yaxk’in","Mol","Ch’en","Yax","Sak’","Keh","Mak","K’ank’in","Muwan","Pax","K’ayab’","Kumk’u","Wayeb’"];
+const anchor=new Date(Date.UTC(2012,11,21)); // 13.0.0.0.0 4 Ajaw 3 K’ank’in
+const mod=(n,m)=>((n%m)+m)%m;
+const iso=d=>d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");
+let t=new Date(), current=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));
+let timer=null, speed=700;
+
+function days(d){return Math.round((d-anchor)/86400000)}
+function state(d){
+ const n=days(d);
+ const num=mod(4-1+n,13)+1;
+ const sign=mod(19+n,20);
+ const hp=mod(13*20+3+n,365);
+ const hi=hp<360?Math.floor(hp/20):18;
+ const hd=hp<360?hp%20:hp-360;
+ let total=n+13*144000;
+ let b=Math.floor(total/144000); total%=144000;
+ let k=Math.floor(total/7200); total%=7200;
+ let tu=Math.floor(total/360); total%=360;
+ let u=Math.floor(total/20); let ki=total%20;
+ return {num,sign,hi,hd,long:[b,k,tu,u,ki]};
+}
+function polar(cx,cy,r,a){
+ const q=(a-90)*Math.PI/180; return [cx+r*Math.cos(q),cy+r*Math.sin(q)];
+}
+function esc(s){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
+function render(){
+ const s=state(current), svg=document.getElementById("dial");
+ let out="";
+ out+=`<circle cx="260" cy="260" r="245" fill="#211b15" stroke="#6a5338" stroke-width="2"/>`;
+ out+=`<circle cx="260" cy="260" r="210" fill="none" stroke="#4a3b2b" stroke-width="20"/>`;
+ // Haab wheel
+ for(let i=0;i<19;i++){
+   const a=i*360/19-s.hi*360/19;
+   const p=polar(260,260,210,a+360/38);
+   const active=i===s.hi;
+   out+=`<text x="${p[0]}" y="${p[1]}" text-anchor="middle" dominant-baseline="middle" font-size="${active?11:8}" font-weight="${active?700:500}" fill="${active?"#f1c27a":"#c8b9a3"}">${esc(haab[i])}</text>`;
+ }
+ // 20 signs wheel
+ for(let i=0;i<20;i++){
+   const a=i*18-s.sign*18;
+   const p=polar(260,260,153,a+9);
+   const active=i===s.sign;
+   out+=`<circle cx="${p[0]}" cy="${p[1]}" r="${active?27:21}" fill="${active?"#5a4225":"#191511"}" stroke="${active?"#c0924c":"#4a3b2b"}" stroke-width="${active?3:1}"/>`;
+   out+=`<text x="${p[0]}" y="${p[1]}" text-anchor="middle" dominant-baseline="middle" font-size="${active?19:13}">${signs[i][2]}</text>`;
+ }
+ // 13 numbers
+ for(let i=0;i<13;i++){
+   const a=i*360/13-s.num*360/13;
+   const p=polar(260,260,105,a+360/26);
+   const active=i===s.num-1;
+   out+=`<circle cx="${p[0]}" cy="${p[1]}" r="${active?17:12}" fill="${active?"#5a4225":"#211b15"}" stroke="${active?"#c0924c":"#4a3b2b"}" stroke-width="${active?2.5:1}"/>`;
+   out+=`<text x="${p[0]}" y="${p[1]}" text-anchor="middle" dominant-baseline="middle" font-size="${active?13:10}" font-weight="${active?700:500}" fill="#f5ead8">${i+1}</text>`;
+ }
+ out+=`<circle cx="260" cy="260" r="69" fill="#17130f" stroke="#6a5338" stroke-width="2"/>`;
+ out+=`<text x="260" y="231" text-anchor="middle" font-size="10" fill="#b9a991">MAYA DAY</text>`;
+ out+=`<text x="260" y="259" text-anchor="middle" font-size="24" font-weight="750" fill="#f5ead8">${s.num} ${esc(signs[s.sign][0])}</text>`;
+ out+=`<text x="260" y="284" text-anchor="middle" font-size="21">${signs[s.sign][2]}</text>`;
+ out+=`<text x="260" y="307" text-anchor="middle" font-size="10" fill="#b9a991">${iso(current)}</text>`;
+ svg.innerHTML=out;
+
+ document.getElementById("tz").textContent=`${s.num} ${signs[s.sign][0]} ${signs[s.sign][2]}`;
+ document.getElementById("tzNote").textContent=`${signs[s.sign][1]} · ${signs[s.sign][3]}`;
+ document.getElementById("haab").textContent=`${s.hd} ${haab[s.hi]}`;
+ document.getElementById("haabNote").textContent=s.hi===18?"Wayeb’ — five closing days.":`Day ${s.hd} of the ${haab[s.hi]} period.`;
+ document.getElementById("round").textContent=`${s.num} ${signs[s.sign][0]} · ${s.hd} ${haab[s.hi]}`;
+ document.getElementById("long").textContent=s.long.join(".");
+ document.getElementById("date").value=iso(current);
+ document.querySelectorAll(".sign").forEach((x,i)=>x.classList.toggle("active",i===s.sign));
+}
+function step(n){current=new Date(current.getTime()+n*86400000);render()}
+document.getElementById("prev").onclick=()=>step(-1);
+document.getElementById("next").onclick=()=>step(1);
+document.getElementById("today").onclick=()=>{let d=new Date();current=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));render()};
+document.getElementById("jump").onclick=()=>{let v=document.getElementById("date").value;if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return;let p=v.split("-").map(Number);current=new Date(Date.UTC(p[0],p[1]-1,p[2]));render()};
+document.getElementById("play").onclick=()=>{
+ if(timer){clearInterval(timer);timer=null;document.getElementById("play").textContent="▶ PLAY"}
+ else{timer=setInterval(()=>step(1),speed);document.getElementById("play").textContent="⏸ PAUSE"}
+};
+document.querySelectorAll("[data-speed]").forEach(b=>b.onclick=()=>{
+ speed=Number(b.dataset.speed);
+ document.querySelectorAll("[data-speed]").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");
+ if(timer){clearInterval(timer);timer=setInterval(()=>step(1),speed)}
+});
+const list=document.getElementById("signs");
+signs.forEach((s,i)=>{
+ const el=document.createElement("div");el.className="sign";el.innerHTML=`<span class="icon">${s[2]}</span><span><b>${i+1}. ${s[0]}</b><br><small>${s[1]} · ${s[3]}</small></span>`;
+ el.onclick=()=>{const cur=state(current).sign;let d=mod(i-cur,20);step(d===0?20:d)};list.appendChild(el);
+});
+render();
+</script>
+</body>
+</html>
